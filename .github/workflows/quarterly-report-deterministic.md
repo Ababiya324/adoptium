@@ -3,16 +3,16 @@ description: Quarterly contribution impact report for the adoptium org. Data is 
 on:
   schedule:
     - cron: "0 9 * * 1"
- workflow_dispatch:
-  inputs:
-    start_date:
-      description: "Start date (YYYY-MM-DD). Leave empty to default to 90 days ago."
-      required: false
-      default: ""
-    end_date:
-      description: "End date (YYYY-MM-DD). Leave empty to default to today."
-      required: false
-      default: ""
+  workflow_dispatch:
+    inputs:
+      start_date:
+        description: "Start date (YYYY-MM-DD). Leave empty to default to 90 days ago."
+        required: false
+        default: ""
+      end_date:
+        description: "End date (YYYY-MM-DD). Leave empty to default to today."
+        required: false
+        default: ""
 engine:
   id: copilot
 timeout-minutes: 30
@@ -31,19 +31,20 @@ steps:
     run: |
       set -euo pipefail
       mkdir -p /tmp/gh-aw/agent
-     START_DATE="${{ inputs.start_date }}"
-     if [ -z "$START_DATE" ]; then
-       SINCE=$(date -u -d '90 days ago' '+%Y-%m-%d')
-     else
-      SINCE=$START_DATE
-     fi
-     END_DATE="${{ inputs.end_date }}"
-     if [ -z "$END_DATE" ]; then
-       UNTIL=$(date -u '+%Y-%m-%d')
-     else
+      START_DATE="${{ inputs.start_date }}"
+      if [ -z "$START_DATE" ]; then
+        SINCE=$(date -u -d '90 days ago' '+%Y-%m-%d')
+      else
+        SINCE=$START_DATE
+      fi
+      END_DATE="${{ inputs.end_date }}"
+      if [ -z "$END_DATE" ]; then
+        UNTIL=$(date -u '+%Y-%m-%d')
+      else
         UNTIL=$END_DATE
-     fi
+      fi
       echo "Window start: $SINCE"
+      echo "Window end: $UNTIL"
 
       gh api -X GET search/issues \
         -f q="org:adoptium is:pr is:merged merged:>=$SINCE...$UNTIL" \
