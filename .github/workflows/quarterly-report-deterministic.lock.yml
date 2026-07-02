@@ -1,4 +1,4 @@
-# gh-aw-metadata: {"schema_version":"v4","frontmatter_hash":"6d7a5ea1aca7d9d473981515891d0a8e4601346c6c20299d00dc7770dfe31aaf","body_hash":"345cdec027601a8cdd7abd5282be4121ae6eae7d6ecc905f80cb6e317e486075","compiler_version":"v0.79.4","strict":true,"agent_id":"copilot","engine_versions":{"copilot":"1.0.60"}}
+# gh-aw-metadata: {"schema_version":"v4","frontmatter_hash":"451447caff1ead98d43b8a881af6705f2b0bd1edb0deb3c22c6f1118cce95303","body_hash":"0178233e6e51d62c85d262a00e6e2791f72d44fdf7907358b34b8e3a3741635c","compiler_version":"v0.79.4","strict":true,"agent_id":"copilot","engine_versions":{"copilot":"1.0.60"}}
 # gh-aw-manifest: {"version":1,"secrets":["GH_AW_GITHUB_MCP_SERVER_TOKEN","GH_AW_GITHUB_TOKEN","GITHUB_TOKEN"],"actions":[{"repo":"actions/checkout","sha":"df4cb1c069e1874edd31b4311f1884172cec0e10","version":"v6.0.3"},{"repo":"actions/download-artifact","sha":"3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c","version":"v8.0.1"},{"repo":"actions/github-script","sha":"3a2844b7e9c422d3c10d287c895573f7108da1b3","version":"v9.0.0"},{"repo":"actions/setup-node","sha":"48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e","version":"v6.4.0"},{"repo":"actions/upload-artifact","sha":"043fb46d1a93c77aae656e7c1c64a875d1fc6a0a","version":"v7.0.1"},{"repo":"github/gh-aw-actions/setup","sha":"d059700c6a8ec3b5fd798b9ea60f5d048447b918","version":"v0.79.4"}],"containers":[{"image":"ghcr.io/github/gh-aw-firewall/agent:0.27.0"},{"image":"ghcr.io/github/gh-aw-firewall/api-proxy:0.27.0"},{"image":"ghcr.io/github/gh-aw-firewall/squid:0.27.0"},{"image":"ghcr.io/github/gh-aw-mcpg:v0.3.25","digest":"sha256:c10331ad17668ef89f38f5e356678788a40b0cd5fef96e8f92e1d9c1de47cbaa","pinned_image":"ghcr.io/github/gh-aw-mcpg:v0.3.25@sha256:c10331ad17668ef89f38f5e356678788a40b0cd5fef96e8f92e1d9c1de47cbaa"},{"image":"ghcr.io/github/github-mcp-server:v1.1.2","digest":"sha256:30197479d8036c7811892bc07e06f9a05c9ef3cdd79bc59f256d50647f95788c","pinned_image":"ghcr.io/github/github-mcp-server:v1.1.2@sha256:30197479d8036c7811892bc07e06f9a05c9ef3cdd79bc59f256d50647f95788c"},{"image":"node:lts-alpine","digest":"sha256:2bdb65ed1dab192432bc31c95f94155ca5ad7fc1392fb7eb7526ab682fa5bf14","pinned_image":"node:lts-alpine@sha256:2bdb65ed1dab192432bc31c95f94155ca5ad7fc1392fb7eb7526ab682fa5bf14"}]}
 #    ___                   _   _      
 #   / _ \                 | | (_)     
@@ -22,7 +22,7 @@
 #
 # For more information: https://github.github.com/gh-aw/introduction/overview/
 #
-# Generates a quarterly contribution impact report ranked by estimated positive impact, posted as a GitHub issue.
+# Quarterly contribution impact report for the adoptium org. Data is fetched and aggregated deterministically; the agent only ranks and writes.
 #
 # Secrets used:
 #   - GH_AW_GITHUB_MCP_SERVER_TOKEN
@@ -57,6 +57,14 @@ on:
         description: "Agent caller context (used internally by Agentic Workflows)."
         required: false
         type: string
+      end_date:
+        default: ""
+        description: End date (YYYY-MM-DD). Leave empty to default to today.
+        required: false
+      start_date:
+        default: ""
+        description: Start date (YYYY-MM-DD). Leave empty to default to 90 days ago.
+        required: false
 
 permissions: {}
 
@@ -96,7 +104,7 @@ jobs:
           safe-output-artifact-client: ${{ env.GH_AW_MAX_DAILY_AI_CREDITS != '' }}
         env:
           GH_AW_SETUP_WORKFLOW_NAME: "Quarterly Contribution Impact Report"
-          GH_AW_CURRENT_WORKFLOW_REF: ${{ github.repository }}/.github/workflows/quarterly-report.lock.yml@${{ github.ref }}
+          GH_AW_CURRENT_WORKFLOW_REF: ${{ github.repository }}/.github/workflows/quarterly-report-deterministic.lock.yml@${{ github.ref }}
           GH_AW_INFO_VERSION: "1.0.60"
           GH_AW_INFO_AWF_VERSION: "v0.27.0"
           GH_AW_INFO_ENGINE_ID: "copilot"
@@ -132,7 +140,7 @@ jobs:
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           GH_AW_WORKFLOW_NAME: "Quarterly Contribution Impact Report"
-          GH_AW_WORKFLOW_ID: "quarterly-report"
+          GH_AW_WORKFLOW_ID: "quarterly-report-deterministic"
           GH_AW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           GH_AW_WORKFLOW_DISPATCH_AW_CONTEXT: ${{ github.event.inputs.aw_context || '' }}
           GH_AW_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -170,7 +178,7 @@ jobs:
         id: check-lock-file
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
-          GH_AW_WORKFLOW_FILE: "quarterly-report.lock.yml"
+          GH_AW_WORKFLOW_FILE: "quarterly-report-deterministic.lock.yml"
           GH_AW_CONTEXT_WORKFLOW_REF: "${{ github.workflow_ref }}"
         with:
           script: |
@@ -204,20 +212,20 @@ jobs:
         run: |
           bash "${RUNNER_TEMP}/gh-aw/actions/create_prompt_first.sh"
           {
-          cat << 'GH_AW_PROMPT_bddd63b73693c4e9_EOF'
+          cat << 'GH_AW_PROMPT_28fd31ac3c4330e5_EOF'
           <system>
-          GH_AW_PROMPT_bddd63b73693c4e9_EOF
+          GH_AW_PROMPT_28fd31ac3c4330e5_EOF
           cat "${RUNNER_TEMP}/gh-aw/prompts/xpia.md"
           cat "${RUNNER_TEMP}/gh-aw/prompts/temp_folder_prompt.md"
           cat "${RUNNER_TEMP}/gh-aw/prompts/markdown.md"
           cat "${RUNNER_TEMP}/gh-aw/prompts/safe_outputs_prompt.md"
-          cat << 'GH_AW_PROMPT_bddd63b73693c4e9_EOF'
+          cat << 'GH_AW_PROMPT_28fd31ac3c4330e5_EOF'
           <safe-output-tools>
           Tools: create_issue, missing_tool, missing_data, noop
           </safe-output-tools>
-          GH_AW_PROMPT_bddd63b73693c4e9_EOF
+          GH_AW_PROMPT_28fd31ac3c4330e5_EOF
           cat "${RUNNER_TEMP}/gh-aw/prompts/mcp_cli_tools_prompt.md"
-          cat << 'GH_AW_PROMPT_bddd63b73693c4e9_EOF'
+          cat << 'GH_AW_PROMPT_28fd31ac3c4330e5_EOF'
           <github-context>
           The following GitHub context information is available for this workflow:
           {{#if github.actor}}
@@ -246,12 +254,12 @@ jobs:
           {{/if}}
           </github-context>
           
-          GH_AW_PROMPT_bddd63b73693c4e9_EOF
+          GH_AW_PROMPT_28fd31ac3c4330e5_EOF
           cat "${RUNNER_TEMP}/gh-aw/prompts/github_mcp_tools_with_safeoutputs_prompt.md"
-          cat << 'GH_AW_PROMPT_bddd63b73693c4e9_EOF'
+          cat << 'GH_AW_PROMPT_28fd31ac3c4330e5_EOF'
           </system>
-          {{#runtime-import .github/workflows/quarterly-report.md}}
-          GH_AW_PROMPT_bddd63b73693c4e9_EOF
+          {{#runtime-import .github/workflows/quarterly-report-deterministic.md}}
+          GH_AW_PROMPT_28fd31ac3c4330e5_EOF
           } > "$GH_AW_PROMPT"
       - name: Interpolate variables and render templates
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
@@ -347,7 +355,7 @@ jobs:
       GH_AW_ASSETS_BRANCH: ""
       GH_AW_ASSETS_MAX_SIZE_KB: 0
       GH_AW_MCP_LOG_DIR: /tmp/gh-aw/mcp-logs/safeoutputs
-      GH_AW_WORKFLOW_ID_SANITIZED: quarterlyreport
+      GH_AW_WORKFLOW_ID_SANITIZED: quarterlyreportdeterministic
     outputs:
       agentic_engine_timeout: ${{ steps.detect-agent-errors.outputs.agentic_engine_timeout || 'false' }}
       ai_credits_rate_limit_error: ${{ steps.parse-mcp-gateway.outputs.ai_credits_rate_limit_error || 'false' }}
@@ -376,7 +384,7 @@ jobs:
           parent-span-id: ${{ needs.activation.outputs.setup-parent-span-id || needs.activation.outputs.setup-span-id }}
         env:
           GH_AW_SETUP_WORKFLOW_NAME: "Quarterly Contribution Impact Report"
-          GH_AW_CURRENT_WORKFLOW_REF: ${{ github.repository }}/.github/workflows/quarterly-report.lock.yml@${{ github.ref }}
+          GH_AW_CURRENT_WORKFLOW_REF: ${{ github.repository }}/.github/workflows/quarterly-report-deterministic.lock.yml@${{ github.ref }}
           GH_AW_INFO_VERSION: "1.0.60"
           GH_AW_INFO_AWF_VERSION: "v0.27.0"
           GH_AW_INFO_ENGINE_ID: "copilot"
@@ -398,6 +406,57 @@ jobs:
         run: bash "${RUNNER_TEMP}/gh-aw/actions/configure_gh_for_ghe.sh"
         env:
           GH_TOKEN: ${{ github.token }}
+      - env:
+          GH_AW_INPUTS_END_DATE: ${{ inputs.end_date }}
+          GH_AW_INPUTS_START_DATE: ${{ inputs.start_date }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: Fetch and aggregate quarterly contribution data
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/gh-aw/agent
+          START_DATE="$GH_AW_INPUTS_START_DATE"
+          if [ -z "$START_DATE" ]; then
+            SINCE=$(date -u -d '90 days ago' '+%Y-%m-%d')
+          else
+            SINCE=$START_DATE
+          fi
+          END_DATE="$GH_AW_INPUTS_END_DATE"
+          if [ -z "$END_DATE" ]; then
+            UNTIL=$(date -u '+%Y-%m-%d')
+          else
+            UNTIL=$END_DATE
+          fi
+          echo "Window start: $SINCE"
+          echo "Window end: $UNTIL"
+
+          gh api -X GET search/issues \
+            -f q="org:adoptium is:pr is:merged merged:>=$SINCE...$UNTIL" \
+            -f per_page=100 --paginate \
+            --jq '.items[] | {number, title, user: .user.login, repo: (.repository_url | sub("https://api.github.com/repos/"; "")), merged: .pull_request.merged_at}' \
+            | jq -s '.' > /tmp/gh-aw/agent/merged-prs.json
+
+          gh api -X GET search/issues \
+            -f q="org:adoptium is:issue is:closed closed:>=$SINCE...$UNTIL" \
+            -f per_page=100 --paginate \
+            --jq '.items[] | {number, title, user: .user.login, repo: (.repository_url | sub("https://api.github.com/repos/"; ""))}' \
+            | jq -s '.' > /tmp/gh-aw/agent/closed-issues.json
+
+          jq -n \
+            --slurpfile prs /tmp/gh-aw/agent/merged-prs.json \
+            --slurpfile iss /tmp/gh-aw/agent/closed-issues.json \
+            '{
+              window_start: "'"$SINCE"'",
+              window_end: "'"$UNTIL"'",
+              total_merged_prs: ($prs[0] | length),
+              total_closed_issues: ($iss[0] | length),
+              repos_touched: ([$prs[0][].repo] | unique | length),
+              prs_by_repo: ([$prs[0][].repo] | group_by(.) | map({repo: .[0], count: length}) | sort_by(-.count)),
+              contributors: ([$prs[0][].user] | group_by(.) | map({user: .[0], merged_prs: length}) | sort_by(-.merged_prs))
+            }' > /tmp/gh-aw/agent/summary.json
+
+          echo "=== summary.json ==="
+          cat /tmp/gh-aw/agent/summary.json
+
       - name: Configure Git credentials
         env:
           REPO_NAME: ${{ github.repository }}
@@ -468,9 +527,9 @@ jobs:
           mkdir -p "${RUNNER_TEMP}/gh-aw/safeoutputs"
           mkdir -p /tmp/gh-aw/safeoutputs
           mkdir -p /tmp/gh-aw/mcp-logs/safeoutputs
-          cat > "${RUNNER_TEMP}/gh-aw/safeoutputs/config.json" << 'GH_AW_SAFE_OUTPUTS_CONFIG_ce3e1d860e74d8ca_EOF'
-          {"create_issue":{"close_older_issues":true,"labels":["report","quarterly-impact"],"max":1,"title_prefix":"[quarterly-impact] "},"create_report_incomplete_issue":{},"missing_data":{},"missing_tool":{},"noop":{"max":1,"report-as-issue":"true"},"report_incomplete":{}}
-          GH_AW_SAFE_OUTPUTS_CONFIG_ce3e1d860e74d8ca_EOF
+          cat > "${RUNNER_TEMP}/gh-aw/safeoutputs/config.json" << 'GH_AW_SAFE_OUTPUTS_CONFIG_1f3f1ed21c96dae2_EOF'
+          {"create_issue":{"labels":["report","quarterly-impact"],"max":1,"title_prefix":"[quarterly-impact] "},"create_report_incomplete_issue":{},"missing_data":{},"missing_tool":{},"noop":{"max":1,"report-as-issue":"true"},"report_incomplete":{}}
+          GH_AW_SAFE_OUTPUTS_CONFIG_1f3f1ed21c96dae2_EOF
       - name: Generate Safe Outputs Tools
         env:
           GH_AW_TOOLS_META_JSON: |
@@ -979,7 +1038,7 @@ jobs:
       contents: read
       issues: write
     concurrency:
-      group: "gh-aw-conclusion-quarterly-report"
+      group: "gh-aw-conclusion-quarterly-report-deterministic"
       cancel-in-progress: false
       queue: max
     outputs:
@@ -998,7 +1057,7 @@ jobs:
           parent-span-id: ${{ needs.activation.outputs.setup-parent-span-id || needs.activation.outputs.setup-span-id }}
         env:
           GH_AW_SETUP_WORKFLOW_NAME: "Quarterly Contribution Impact Report"
-          GH_AW_CURRENT_WORKFLOW_REF: ${{ github.repository }}/.github/workflows/quarterly-report.lock.yml@${{ github.ref }}
+          GH_AW_CURRENT_WORKFLOW_REF: ${{ github.repository }}/.github/workflows/quarterly-report-deterministic.lock.yml@${{ github.ref }}
           GH_AW_INFO_VERSION: "1.0.60"
           GH_AW_INFO_AWF_VERSION: "v0.27.0"
           GH_AW_INFO_ENGINE_ID: "copilot"
@@ -1057,14 +1116,14 @@ jobs:
           GH_AW_AGENT_OUTPUT: ${{ steps.setup-agent-output-env.outputs.GH_AW_AGENT_OUTPUT }}
           GH_AW_NOOP_MAX: "1"
           GH_AW_WORKFLOW_NAME: "Quarterly Contribution Impact Report"
-          GH_AW_WORKFLOW_SOURCE_URL: "${{ github.server_url }}/${{ github.repository }}/blob/${{ github.ref_name }}/.github/workflows/quarterly-report.md"
+          GH_AW_WORKFLOW_SOURCE_URL: "${{ github.server_url }}/${{ github.repository }}/blob/${{ github.ref_name }}/.github/workflows/quarterly-report-deterministic.md"
           GH_AW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           GH_AW_AGENT_CONCLUSION: ${{ needs.agent.result }}
           GH_AW_NOOP_REPORT_AS_ISSUE: "true"
           GH_AW_AIC: ${{ needs.agent.outputs.aic }}
           GH_AW_THREAT_DETECTION_AIC: ${{ needs.detection.outputs.aic }}
           GH_AW_AMBIENT_CONTEXT: ${{ needs.agent.outputs.ambient_context }}
-          GH_AW_WORKFLOW_ID: "quarterly-report"
+          GH_AW_WORKFLOW_ID: "quarterly-report-deterministic"
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -1078,7 +1137,7 @@ jobs:
         env:
           GH_AW_AGENT_OUTPUT: ${{ steps.setup-agent-output-env.outputs.GH_AW_AGENT_OUTPUT }}
           GH_AW_WORKFLOW_NAME: "Quarterly Contribution Impact Report"
-          GH_AW_WORKFLOW_SOURCE_URL: "${{ github.server_url }}/${{ github.repository }}/blob/${{ github.ref_name }}/.github/workflows/quarterly-report.md"
+          GH_AW_WORKFLOW_SOURCE_URL: "${{ github.server_url }}/${{ github.repository }}/blob/${{ github.ref_name }}/.github/workflows/quarterly-report-deterministic.md"
           GH_AW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           GH_AW_DETECTION_CONCLUSION: ${{ needs.detection.outputs.detection_conclusion }}
           GH_AW_DETECTION_REASON: ${{ needs.detection.outputs.detection_reason }}
@@ -1096,7 +1155,7 @@ jobs:
           GH_AW_AGENT_OUTPUT: ${{ steps.setup-agent-output-env.outputs.GH_AW_AGENT_OUTPUT }}
           GH_AW_MISSING_TOOL_CREATE_ISSUE: "true"
           GH_AW_WORKFLOW_NAME: "Quarterly Contribution Impact Report"
-          GH_AW_WORKFLOW_SOURCE_URL: "${{ github.server_url }}/${{ github.repository }}/blob/${{ github.ref_name }}/.github/workflows/quarterly-report.md"
+          GH_AW_WORKFLOW_SOURCE_URL: "${{ github.server_url }}/${{ github.repository }}/blob/${{ github.ref_name }}/.github/workflows/quarterly-report-deterministic.md"
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -1111,7 +1170,7 @@ jobs:
           GH_AW_AGENT_OUTPUT: ${{ steps.setup-agent-output-env.outputs.GH_AW_AGENT_OUTPUT }}
           GH_AW_REPORT_INCOMPLETE_CREATE_ISSUE: "true"
           GH_AW_WORKFLOW_NAME: "Quarterly Contribution Impact Report"
-          GH_AW_WORKFLOW_SOURCE_URL: "${{ github.server_url }}/${{ github.repository }}/blob/${{ github.ref_name }}/.github/workflows/quarterly-report.md"
+          GH_AW_WORKFLOW_SOURCE_URL: "${{ github.server_url }}/${{ github.repository }}/blob/${{ github.ref_name }}/.github/workflows/quarterly-report-deterministic.md"
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -1126,10 +1185,10 @@ jobs:
         env:
           GH_AW_AGENT_OUTPUT: ${{ steps.setup-agent-output-env.outputs.GH_AW_AGENT_OUTPUT }}
           GH_AW_WORKFLOW_NAME: "Quarterly Contribution Impact Report"
-          GH_AW_WORKFLOW_SOURCE_URL: "${{ github.server_url }}/${{ github.repository }}/blob/${{ github.ref_name }}/.github/workflows/quarterly-report.md"
+          GH_AW_WORKFLOW_SOURCE_URL: "${{ github.server_url }}/${{ github.repository }}/blob/${{ github.ref_name }}/.github/workflows/quarterly-report-deterministic.md"
           GH_AW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           GH_AW_AGENT_CONCLUSION: ${{ needs.agent.result }}
-          GH_AW_WORKFLOW_ID: "quarterly-report"
+          GH_AW_WORKFLOW_ID: "quarterly-report-deterministic"
           GH_AW_ACTION_FAILURE_ISSUE_EXPIRES_HOURS: "168"
           GH_AW_ENGINE_ID: "copilot"
           GH_AW_CHECKOUT_PR_SUCCESS: ${{ needs.agent.outputs.checkout_pr_success }}
@@ -1186,7 +1245,7 @@ jobs:
           parent-span-id: ${{ needs.activation.outputs.setup-parent-span-id || needs.activation.outputs.setup-span-id }}
         env:
           GH_AW_SETUP_WORKFLOW_NAME: "Quarterly Contribution Impact Report"
-          GH_AW_CURRENT_WORKFLOW_REF: ${{ github.repository }}/.github/workflows/quarterly-report.lock.yml@${{ github.ref }}
+          GH_AW_CURRENT_WORKFLOW_REF: ${{ github.repository }}/.github/workflows/quarterly-report-deterministic.lock.yml@${{ github.ref }}
           GH_AW_INFO_VERSION: "1.0.60"
           GH_AW_INFO_AWF_VERSION: "v0.27.0"
           GH_AW_INFO_ENGINE_ID: "copilot"
@@ -1259,7 +1318,7 @@ jobs:
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           WORKFLOW_NAME: "Quarterly Contribution Impact Report"
-          WORKFLOW_DESCRIPTION: "Generates a quarterly contribution impact report ranked by estimated positive impact, posted as a GitHub issue."
+          WORKFLOW_DESCRIPTION: "Quarterly contribution impact report for the adoptium org. Data is fetched and aggregated deterministically; the agent only ranks and writes."
           HAS_PATCH: ${{ needs.agent.outputs.has_patch }}
         with:
           script: |
@@ -1415,7 +1474,7 @@ jobs:
       GH_AW_AGENT_AIC: ${{ needs.agent.outputs.aic }}
       GH_AW_AIC: ${{ needs.agent.outputs.aic }}
       GH_AW_AMBIENT_CONTEXT: ${{ needs.agent.outputs.ambient_context }}
-      GH_AW_CALLER_WORKFLOW_ID: "${{ github.repository }}/quarterly-report"
+      GH_AW_CALLER_WORKFLOW_ID: "${{ github.repository }}/quarterly-report-deterministic"
       GH_AW_DETECTION_CONCLUSION: ${{ needs.detection.outputs.detection_conclusion }}
       GH_AW_DETECTION_REASON: ${{ needs.detection.outputs.detection_reason }}
       GH_AW_EFFECTIVE_TOKENS: ${{ needs.agent.outputs.effective_tokens }}
@@ -1423,9 +1482,9 @@ jobs:
       GH_AW_ENGINE_MODEL: ${{ needs.agent.outputs.model }}
       GH_AW_ENGINE_VERSION: "1.0.60"
       GH_AW_THREAT_DETECTION_AIC: ${{ needs.detection.outputs.aic }}
-      GH_AW_WORKFLOW_ID: "quarterly-report"
+      GH_AW_WORKFLOW_ID: "quarterly-report-deterministic"
       GH_AW_WORKFLOW_NAME: "Quarterly Contribution Impact Report"
-      GH_AW_WORKFLOW_SOURCE_URL: "${{ github.server_url }}/${{ github.repository }}/blob/${{ github.ref_name }}/.github/workflows/quarterly-report.md"
+      GH_AW_WORKFLOW_SOURCE_URL: "${{ github.server_url }}/${{ github.repository }}/blob/${{ github.ref_name }}/.github/workflows/quarterly-report-deterministic.md"
     outputs:
       code_push_failure_count: ${{ steps.process_safe_outputs.outputs.code_push_failure_count }}
       code_push_failure_errors: ${{ steps.process_safe_outputs.outputs.code_push_failure_errors }}
@@ -1446,7 +1505,7 @@ jobs:
           parent-span-id: ${{ needs.activation.outputs.setup-parent-span-id || needs.activation.outputs.setup-span-id }}
         env:
           GH_AW_SETUP_WORKFLOW_NAME: "Quarterly Contribution Impact Report"
-          GH_AW_CURRENT_WORKFLOW_REF: ${{ github.repository }}/.github/workflows/quarterly-report.lock.yml@${{ github.ref }}
+          GH_AW_CURRENT_WORKFLOW_REF: ${{ github.repository }}/.github/workflows/quarterly-report-deterministic.lock.yml@${{ github.ref }}
           GH_AW_INFO_VERSION: "1.0.60"
           GH_AW_INFO_AWF_VERSION: "v0.27.0"
           GH_AW_INFO_ENGINE_ID: "copilot"
@@ -1483,7 +1542,7 @@ jobs:
           GH_AW_ALLOWED_DOMAINS: "api.business.githubcopilot.com,api.enterprise.githubcopilot.com,api.github.com,api.githubcopilot.com,api.individual.githubcopilot.com,api.snapcraft.io,archive.ubuntu.com,azure.archive.ubuntu.com,crl.geotrust.com,crl.globalsign.com,crl.identrust.com,crl.sectigo.com,crl.thawte.com,crl.usertrust.com,crl.verisign.com,crl3.digicert.com,crl4.digicert.com,crls.ssl.com,github.com,host.docker.internal,json-schema.org,json.schemastore.org,keyserver.ubuntu.com,ocsp.digicert.com,ocsp.geotrust.com,ocsp.globalsign.com,ocsp.identrust.com,ocsp.sectigo.com,ocsp.ssl.com,ocsp.thawte.com,ocsp.usertrust.com,ocsp.verisign.com,packagecloud.io,packages.cloud.google.com,packages.microsoft.com,ppa.launchpad.net,raw.githubusercontent.com,registry.npmjs.org,s.symcb.com,s.symcd.com,security.ubuntu.com,telemetry.enterprise.githubcopilot.com,ts-crl.ws.symantec.com,ts-ocsp.ws.symantec.com,www.googleapis.com"
           GITHUB_SERVER_URL: ${{ github.server_url }}
           GITHUB_API_URL: ${{ github.api_url }}
-          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"create_issue\":{\"close_older_issues\":true,\"labels\":[\"report\",\"quarterly-impact\"],\"max\":1,\"title_prefix\":\"[quarterly-impact] \"},\"create_report_incomplete_issue\":{},\"missing_data\":{},\"missing_tool\":{},\"noop\":{\"max\":1,\"report-as-issue\":\"true\"},\"report_incomplete\":{}}"
+          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"create_issue\":{\"labels\":[\"report\",\"quarterly-impact\"],\"max\":1,\"title_prefix\":\"[quarterly-impact] \"},\"create_report_incomplete_issue\":{},\"missing_data\":{},\"missing_tool\":{},\"noop\":{\"max\":1,\"report-as-issue\":\"true\"},\"report_incomplete\":{}}"
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
