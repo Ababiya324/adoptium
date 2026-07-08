@@ -6,7 +6,6 @@ on:
   workflow_dispatch:
 engine:
   id: copilot
-  model: gpt-4o
 permissions:
   contents: read
   issues: read
