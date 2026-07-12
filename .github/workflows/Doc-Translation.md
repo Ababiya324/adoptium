@@ -9,10 +9,12 @@ on:
   workflow_dispatch:
 engine:
   id: copilot
+
 timeout-minutes: 30
 permissions:
   contents: read
   pull-requests: read
+  copilot-requests: write
 network:
   allowed:
     - defaults
