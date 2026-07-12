@@ -1,11 +1,6 @@
 ---
-description: Monitors documentation updates and automatically generates multi-language translations as a pull request.
+description: Manually triggered workflow that generates multi-language translations of the documentation as a pull request.
 on:
-  push:
-    branches: [main]
-    paths:
-      - "README.md"
-      - "docs/**/*.md"
   workflow_dispatch:
 engine:
   id: copilot
@@ -28,19 +23,26 @@ safe-outputs:
 
 # Multi-Language Documentation Translation
 
-Documentation in this repository was just updated. Identify which documentation files changed and regenerate their translations, then open a single pull request containing all updated translation files.
+Regenerate translations for the documentation in this repository, then open a single pull request containing all new or updated translation files.
 
 ## Target languages
 Generate one translation per language for each changed source document:
 - Spanish — suffix `.es.md`
 - French — suffix `.fr.md`
 - Japanese — suffix `.ja.md`
-- Amharic — suffix `.am.md`
+- Chinese (Simplified) — suffix `.zh.md`
+- German — suffix `.de.md`
+- Portuguese (Brazilian) — suffix `.pt.md`
+- Korean — suffix `.ko.md`
+- Hindi — suffix `.hi.md`
+- Arabic — suffix `.ar.md`
+- Russian — suffix `.ru.md`
+- Italian — suffix `.it.md`
 
 Naming: `README.md` → `README.es.md`, `docs/guide.md` → `docs/guide.es.md`, and so on. Translations live next to their source file.
 
 ## Process
-1. Determine the changed documentation files. If triggered by a push, translate the Markdown files changed in the triggering commits (only `README.md` and files under `docs/`). If triggered manually, translate `README.md` and every Markdown file under `docs/`.
+1. Translate `README.md` and every Markdown file under `docs/`.
 2. Skip files that are themselves translations (any file whose name matches `*.<lang>.md` for the suffixes above).
 3. For each source file and each target language, write the full translated file.
 4. Open exactly one draft pull request containing all new or updated translation files.
@@ -58,4 +60,4 @@ Naming: `README.md` → `README.es.md`, `docs/guide.md` → `docs/guide.es.md`, 
 ## Constraints
 - Create exactly one pull request.
 - Do not modify any source (English) documentation file.
-- If no eligible documentation files changed, do not open a pull request; end without output.
+- If there are no eligible documentation files to translate, do not open a pull request; end without output.
