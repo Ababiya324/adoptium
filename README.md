@@ -1,4 +1,4 @@
-# Eclipse Adoptium
+# Eclipse Adoptium.
 
 This organization provides a home for Git repositories that contain the activities of the Adoptium Working Group, the Eclipse Adoptium Top Level Project and several Eclipse projects that fall under that top level project:
 
