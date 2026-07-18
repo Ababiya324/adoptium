@@ -1,7 +1,7 @@
 ---
 description: "Continuous multi-channel review of community questions with proposed Adoptium FAQ updates."
 on:
-  schedule: daily             # fuzzy daily schedule; compiler picks a distributed time
+  schedule: weekly            # fuzzy weekly schedule; matches the 7-day pre-fetch window
   workflow_dispatch:
 engine:
   id: copilot
@@ -254,12 +254,20 @@ Recurring questions already handled adequately — useful signal, no change need
 ### Documentation Gaps
 Where users consistently struggled to find answers.
 
+### Notable One-Offs
+Individual questions that are unlikely to warrant an FAQ entry but are still
+worth surfacing — a novel bug report, an unusual environment, a sharp question a
+maintainer may want to see. One line each with a source link. These do not drive
+FAQ changes; they are reported as signal.
+
 ## Constraints
 
 - Do **not** modify the FAQ directly; propose only.
 - Every block must be valid AsciiDoc matching the existing style.
 - Prefer official maintainer answers over community speculation.
-- Focus on recurring or broadly useful questions, not one-offs.
+- Base FAQ proposals on recurring or broadly useful questions. Still report
+  one-offs under **Notable One-Offs** — they are useful signal even when they do
+  not warrant an FAQ change.
 - Never duplicate an existing entry; compare against `faq.adoc` first.
 - Include source links wherever possible.
 - Exactly one issue per run, or a `noop`. Never neither.
