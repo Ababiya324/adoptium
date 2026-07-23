@@ -21,7 +21,7 @@ on:
         required: false
         type: string
       since:
-        description: "Start of the release window (YYYY-MM-DD) for scanning delivery-repo activity. Defaults to 90 days ago."
+        description: "Start of the release window (YYYY-MM-DD) for scanning delivery-repo activity. Defaults to the date of the last GA tag of the first listed JDK version (i.e. since that version last released), falling back to 90 days ago."
         required: false
         type: string
 
@@ -58,14 +58,6 @@ steps:
       AGENT_DIR=/tmp/gh-aw/agent
       mkdir -p "$AGENT_DIR/example-posts"
 
-      SINCE="${INPUT_SINCE:-}"
-      [ -n "$SINCE" ] || SINCE=$(date -u -d '90 days ago' '+%Y-%m-%d')
-      echo "$SINCE" | grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' \
-        || { echo "::error::Invalid since date '$SINCE' (expected YYYY-MM-DD)"; exit 1; }
-      echo "Release type: ${INPUT_RELEASE_TYPE}"
-      echo "JDK versions: ${INPUT_JDK_VERSIONS}"
-      echo "Scanning delivery-repo activity since: $SINCE"
-
       # A tiny retry wrapper: GitHub search occasionally returns an empty 200.
       gh_retry() { # $@ = gh api args; prints stdout, empty string on repeated failure
         local attempt
@@ -76,6 +68,36 @@ steps:
         printf ''
         return 0
       }
+
+      # Default the release window to "since this version last released": the
+      # date of the most recent GA tag (e.g. jdk-21.0.11-ga, jdk8u492-ga) in the
+      # mirror repo of the first listed JDK version. Fall back to 90 days.
+      SINCE="${INPUT_SINCE:-}"
+      if [ -z "$SINCE" ]; then
+        FIRST_V=$(echo "$INPUT_JDK_VERSIONS" | cut -d, -f1 | tr -d '[:space:]')
+        MIRROR="jdk${FIRST_V}u"
+        # Walk GA tags newest-first and take the first one older than 21 days:
+        # right around a release the newest GA tag is the release being drafted,
+        # and the window should reach back to the *previous* one.
+        CUTOFF=$(date -u -d '21 days ago' '+%Y-%m-%d')
+        for GA_TAG in $(gh_retry "repos/adoptium/$MIRROR/tags?per_page=100" \
+            --jq '.[].name' | grep -- '-ga$' | grep -v dryrun | sort -rV | head -4); do
+          TAG_DATE=$(gh_retry "repos/adoptium/$MIRROR/commits/$GA_TAG" \
+            --jq '.commit.committer.date' | cut -dT -f1)
+          [ -n "$TAG_DATE" ] || continue
+          if [ "$TAG_DATE" \< "$CUTOFF" ]; then
+            SINCE=$TAG_DATE
+            echo "Last released GA tag of JDK $FIRST_V: $GA_TAG ($SINCE)"
+            break
+          fi
+        done
+      fi
+      [ -n "$SINCE" ] || SINCE=$(date -u -d '90 days ago' '+%Y-%m-%d')
+      echo "$SINCE" | grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' \
+        || { echo "::error::Invalid since date '$SINCE' (expected YYYY-MM-DD)"; exit 1; }
+      echo "Release type: ${INPUT_RELEASE_TYPE}"
+      echo "JDK versions: ${INPUT_JDK_VERSIONS}"
+      echo "Scanning delivery-repo activity since: $SINCE"
 
       # 1. Human-collected content issue (optional).
       if [ -n "${INPUT_CONTENT_ISSUE:-}" ]; then
