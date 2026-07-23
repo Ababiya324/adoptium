@@ -5,11 +5,12 @@ on:
   workflow_dispatch:
     inputs:
       release_type:
-        description: "Release type: cpu (quarterly Critical Patch Update) or feature (new JDK version)."
+        description: "Release type: cpu (quarterly Critical Patch Update), cspu (Critical Security Patch Update), or feature (new JDK version)."
         required: true
         type: choice
         options:
           - cpu
+          - cspu
           - feature
       jdk_versions:
         description: "JDK versions in this release, comma-separated. Example: 8, 11, 17, 21, 25"
@@ -166,7 +167,7 @@ All the source material for this release has already been gathered for you befor
 
 The person who started this run provided:
 
-- **Release type**: read it from the workflow inputs echoed in the setup step. `cpu` means a quarterly Critical Patch Update that ships across all supported JDK versions (January, April, July, October). `feature` means a new JDK feature version (around March and April). The framing, headline, and emphasis differ between the two: a CPU post leads with security and the set of updated versions, while a feature post leads with what is new in the new JDK version.
+- **Release type**: read it from the workflow inputs echoed in the setup step. `cpu` means a quarterly Critical Patch Update that ships across all supported JDK versions (January, April, July, October). `cspu` means a Critical Security Patch Update, an out-of-band release containing only security patches; it may cover one or more versions depending on the patches delivered, and its versions use an extra dotted component (e.g. `26.0.2.1`). `feature` means a new JDK feature version (around March and April). The framing, headline, and emphasis differ: a CPU post leads with security and the set of updated versions; a CSPU post leads with the security fixes being delivered and states plainly that it is a security-only update to the affected version(s) — still scan the repo activity for other notable changes, but expect few; a feature post leads with what is new in the new JDK version.
 - **JDK versions**: the comma-separated list of versions in this release.
 
 ## Pre-gathered material
